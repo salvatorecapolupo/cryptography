@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crittografo Online – Simmetrica & Asimmetrica</title>
+  <style>
+    :root{
+      --bg:#0f1220; --panel:#171a2b; --panel-2:#1f2340; --text:#e8ebff; --muted:#a7afd9; --acc:#6ea8fe; --ok:#1ac486; --warn:#ffcc66; --bad:#ff6b6b;
+      --radius:18px; --radius-sm:12px; --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; color:var(--text); background: radial-gradient(1000px 600px at 10% -10%, #1c2144 0%, #0f1220 55%) no-repeat, var(--bg);}
+    a{color:var(--acc);text-decoration:none}
+
+    .wrap{max-width:1100px;margin:24px auto;padding:0 16px 64px}
+    header{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:8px 0 16px}
+    header h1{font-size:clamp(20px, 3vw, 28px);margin:0;letter-spacing:.2px}
+    header .tag{font-size:12px;color:var(--muted)}
+
+    .card{background:linear-gradient(180deg, var(--panel), var(--panel-2));border:1px solid rgba(255,255,255,.06);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card.pad{padding:20px}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{border-radius:999px;background:#111528;border:1px solid rgba(255,255,255,.08);padding:8px 14px;color:var(--muted);cursor:pointer;transition:.2s}
+    .tab.active{background:var(--acc);color:#0b1022;border-color:transparent;font-weight:700}
+
+    .grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:16px}
+    @media(max-width:920px){.grid{grid-template-columns:1fr}}
+
+    .field{display:grid;gap:6px;margin-bottom:12px}
+    label{font-weight:600;color:#cbd5ff;font-size:14px}
+    .hint{font-size:12px;color:var(--muted)}
+    input[type="text"], input[type="password"], textarea, select{
+      width:100%;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:#0d1022;color:var(--text);
+      padding:12px 12px;outline:none;transition:border .2s,font .2s; font-size:14px
+    }
+    textarea{min-height:110px;resize:vertical}
+
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{appearance:none;border:none;border-radius:12px;background:#11162e;color:var(--text);padding:10px 14px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:.2s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn.acc{background:var(--acc);color:#0b1022;border-color:transparent}
+    .btn.ghost{background:transparent}
+    .btn.ok{background:var(--ok);color:#04161a}
+    .btn.warn{background:var(--warn);color:#221400}
+    .btn.bad{background:var(--bad)}
+
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media(max-width:560px){.split{grid-template-columns:1fr}}
+
+    .steps{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    @media(max-width:920px){.steps{grid-template-columns:1fr}}
+    .step{border-radius:var(--radius-sm);background:#0d1022;border:1px dashed rgba(255,255,255,.08);padding:14px;min-height:84px;position:relative;overflow:hidden}
+    .step h4{margin:0 0 8px;font-size:14px;color:#d7ddff}
+    .badge{position:absolute;top:10px;right:10px;font-size:11px;padding:4px 8px;border-radius:999px;background:#0b1124;color:var(--muted);border:1px solid rgba(255,255,255,.06)}
+    .step.done{border-style:solid;border-color:rgba(75, 255, 179, .4)}
+    .step.done .badge{background:var(--ok);color:#062217;border-color:transparent}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; word-break:break-all}
+
+    .out{background:#0b0f21;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;min-height:84px}
+    .muted{color:var(--muted)}
+    .tiny{font-size:11px}
+
+    footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
+    .pill{display:inline-block;background:#0d1022;border:1px solid rgba(255,255,255,.08);padding:4px 8px;border-radius:999px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>🔐 Crittografo Online</h1>
+        <div class="tag">Dimostrazione interattiva di crittografia <strong>simmetrica</strong> (AES‑GCM) e <strong>asimmetrica</strong> ibrida (RSA‑OAEP + AES).</div>
+      </div>
+      <div class="pill">100% client‑side</div>
+    </header>
+
+    <div class="card pad">
+      <div class="tabs" role="tablist">
+        <button class="tab active" role="tab" aria-selected="true" id="tab-sym">Simmetrica (AES‑GCM)</button>
+        <button class="tab" role="tab" aria-selected="false" id="tab-asym">Asimmetrica (RSA‑OAEP + AES)</button>
+      </div>
+
+      <div class="grid" id="panel-sym" role="tabpanel" aria-labelledby="tab-sym">
+        <section class="card pad">
+          <h2 style="margin-top:0">Messaggio & Parametri</h2>
+          <div class="field">
+            <label for="msg-s">Messaggio</label>
+            <textarea id="msg-s" placeholder="Scrivi il tuo messaggio qui…"></textarea>
+          </div>
+          <div class="split">
+            <div class="field">
+              <label for="pass-s">Password (PBKDF2) <span class="hint">opzionale, altrimenti chiave casuale</span></label>
+              <input id="pass-s" type="password" placeholder="Scegli una password sicura" />
+            </div>
+            <div class="field">
+              <label for="iter-s">Iterazioni PBKDF2</label>
+              <input id="iter-s" type="text" value="150000" />
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn acc" id="btn-enc-s">Cifra</button>
+            <button class="btn" id="btn-dec-s">Decifra</button>
+            <button class="btn ghost" id="btn-clear-s">Pulisci</button>
+          </div>
+        </section>
+
+        <section class="card pad">
+          <h2 style="margin-top:0">Fasi</h2>
+          <div class="steps" id="steps-s">
+            <div class="step" id="s1"><span class="badge">1</span><h4>Codifica UTF‑8</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="s2"><span class="badge">2</span><h4>Derivazione chiave (PBKDF2)</h4><div class="tiny muted">Salt + iterazioni ⇒ chiave AES‑256</div><div class="mono" data-slot></div></div>
+            <div class="step" id="s3"><span class="badge">3</span><h4>IV casuale (12 byte)</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="s4"><span class="badge">4</span><h4>Cifratura AES‑GCM</h4><div class="mono" data-slot></div></div>
+          </div>
+          <h3>Output</h3>
+          <div class="out" id="out-s"></div>
+        </section>
+      </div>
+
+      <div class="grid" id="panel-asym" role="tabpanel" aria-labelledby="tab-asym" style="display:none">
+        <section class="card pad">
+          <h2 style="margin-top:0">Messaggio & Chiavi</h2>
+          <div class="field">
+            <label for="msg-a">Messaggio</label>
+            <textarea id="msg-a" placeholder="Scrivi il tuo messaggio qui…"></textarea>
+          </div>
+          <div class="split">
+            <div class="field">
+              <label>Chiave pubblica</label>
+              <textarea id="pub-a" placeholder="Genera coppia di chiavi per iniziare…" style="min-height:90px"></textarea>
+            </div>
+            <div class="field">
+              <label>Chiave privata</label>
+              <textarea id="priv-a" placeholder="Mantieni segreta questa chiave" style="min-height:90px"></textarea>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn" id="btn-gen-a">Genera coppia di chiavi</button>
+            <button class="btn acc" id="btn-enc-a">Cifra (Ibrido)</button>
+            <button class="btn" id="btn-dec-a">Decifra</button>
+            <button class="btn ghost" id="btn-clear-a">Pulisci</button>
+          </div>
+        </section>
+
+        <section class="card pad">
+          <h2 style="margin-top:0">Fasi</h2>
+          <div class="steps" id="steps-a">
+            <div class="step" id="a1"><span class="badge">1</span><h4>Generazione coppia RSA‑OAEP</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="a2"><span class="badge">2</span><h4>Codifica UTF‑8</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="a3"><span class="badge">3</span><h4>Chiave simmetrica AES‑GCM</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="a4"><span class="badge">4</span><h4>Cifra messaggio con AES</h4><div class="mono" data-slot></div></div>
+            <div class="step" id="a5"><span class="badge">5</span><h4>Cifra chiave AES con RSA (pubblica)</h4><div class="mono" data-slot></div></div>
+          </div>
+          <h3>Pacchetto</h3>
+          <div class="out" id="out-a"></div>
+        </section>
+      </div>
+    </div>
+
+    <footer>
+      ⚠️ Scopo didattico: implementazione basata su <span class="pill">Web Crypto API</span>. Non invia dati a server. In ambienti non sicuri il browser può limitare alcune funzioni.
+    </footer>
+  </div>
+
+  <script>
+    // Utilità ---------------------------------------------------------------
+    const enc = new TextEncoder();
+    const dec = new TextDecoder();
+
+    const b64 = {
+      fromBytes: (buf) => {
+        const bin = String.fromCharCode(...new Uint8Array(buf));
+        return btoa(bin);
+      },
+      toBytes: (b64) => Uint8Array.from(atob(b64), c=>c.charCodeAt(0))
+    };
+    const hex = (buf) => [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    const pretty = (obj) => `<div class="mono">${obj}</div>`;
+
+    const ui = {
+      markDone(stepEl, content){
+        stepEl.classList.add('done');
+        const slot = stepEl.querySelector('[data-slot]');
+        if(slot) slot.textContent = content;
+      },
+      clearSteps(container){
+        container.querySelectorAll('.step').forEach(s=>{
+          s.classList.remove('done');
+          const slot = s.querySelector('[data-slot]');
+          if(slot) slot.textContent = '';
+        });
+      },
+      setOut(outEl, html){ outEl.innerHTML = html; }
+    };
+
+    // Tabs ------------------------------------------------------------------
+    const tabSym = document.getElementById('tab-sym');
+    const tabAsym = document.getElementById('tab-asym');
+    const panelSym = document.getElementById('panel-sym');
+    const panelAsym = document.getElementById('panel-asym');
+    tabSym.addEventListener('click', ()=>{
+      tabSym.classList.add('active'); tabAsym.classList.remove('active');
+      panelSym.style.display='grid'; panelAsym.style.display='none';
+      tabSym.setAttribute('aria-selected','true'); tabAsym.setAttribute('aria-selected','false');
+    });
+    tabAsym.addEventListener('click', ()=>{
+      tabAsym.classList.add('active'); tabSym.classList.remove('active');
+      panelAsym.style.display='grid'; panelSym.style.display='none';
+      tabAsym.setAttribute('aria-selected','true'); tabSym.setAttribute('aria-selected','false');
+    });
+
+    // SIMMETRICA ------------------------------------------------------------
+    async function deriveKeyPBKDF2(password, salt, iterations){
+      const baseKey = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations, hash:'SHA-256'}, baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    }
+
+    async function encSym(){
+      ui.clearSteps(document.getElementById('steps-s'));
+      const msg = document.getElementById('msg-s').value || '';
+      const pass = document.getElementById('pass-s').value;
+      const iter = parseInt(document.getElementById('iter-s').value || '150000', 10);
+      const out = document.getElementById('out-s');
+      if(!msg){ ui.setOut(out, '<span class="muted">Inserisci un messaggio.</span>'); return; }
+      const data = enc.encode(msg);
+      ui.markDone(document.getElementById('s1'), `${data.length} byte`);
+
+      let key, salt;
+      if(pass){
+        salt = crypto.getRandomValues(new Uint8Array(16));
+        key = await deriveKeyPBKDF2(pass, salt, iter);
+        ui.markDone(document.getElementById('s2'), `salt=${hex(salt)}\niter=${iter}`);
+      } else {
+        key = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+        const raw = await crypto.subtle.exportKey('raw', key);
+        salt = new Uint8Array(); // no salt
+        ui.markDone(document.getElementById('s2'), `chiave casuale=${hex(raw).slice(0,48)}…`);
+      }
+
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      ui.markDone(document.getElementById('s3'), hex(iv));
+
+      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, data);
+      ui.markDone(document.getElementById('s4'), `ciphertext=${hex(ct).slice(0,64)}…`);
+
+      const exported = pass ? await crypto.subtle.exportKey('raw', key).catch(()=>null) : await crypto.subtle.exportKey('raw', key);
+      const packet = {
+        v:1,
+        algo:'AES-GCM',
+        iter: pass? iter : undefined,
+        salt: salt.length? b64.fromBytes(salt) : undefined,
+        iv: b64.fromBytes(iv),
+        ct: b64.fromBytes(ct),
+        key: !pass && exported ? b64.fromBytes(exported) : undefined
+      };
+      ui.setOut(out, `<div class="mono">${JSON.stringify(packet, null, 2)}</div>`);
+    }
+
+    async function decSym(){
+      ui.clearSteps(document.getElementById('steps-s'));
+      const out = document.getElementById('out-s');
+      let packet;
+      try{ packet = JSON.parse(document.getElementById('out-s').innerText); }catch(e){ ui.setOut(out, '<span class="muted">Inserisci/Genera prima un pacchetto JSON valido nell\'output.</span>'); return; }
+      const pass = document.getElementById('pass-s').value;
+      const iter = parseInt(document.getElementById('iter-s').value || '150000', 10);
+
+      const iv = b64.toBytes(packet.iv);
+      ui.markDone(document.getElementById('s3'), hex(iv));
+
+      let key;
+      if(packet.key){
+        key = await crypto.subtle.importKey('raw', b64.toBytes(packet.key), {name:'AES-GCM'}, false, ['decrypt']);
+        ui.markDone(document.getElementById('s2'), `chiave raw dal pacchetto`);
+      } else if(pass && packet.salt){
+        const salt = b64.toBytes(packet.salt);
+        key = await deriveKeyPBKDF2(pass, salt, packet.iter || iter);
+        ui.markDone(document.getElementById('s2'), `derivata da password (salt=${hex(salt)})`);
+      } else {
+        ui.setOut(out, '<span class="muted">Manca una chiave: fornisci password (con salt nel pacchetto) o una chiave raw nel pacchetto.</span>');
+        return;
+      }
+
+      const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, b64.toBytes(packet.ct)).catch(e=>{
+        ui.setOut(out, `<span class="bad">Errore decifratura: ${e.message}</span>`);
+      });
+      if(pt){
+        ui.markDone(document.getElementById('s4'), 'autenticazione GCM OK');
+        ui.markDone(document.getElementById('s1'), `${pt.byteLength} byte`);
+        ui.setOut(out, `<div class="mono">${dec.decode(pt)}</div>`);
+      }
+    }
+
+    document.getElementById('btn-enc-s').addEventListener('click', encSym);
+    document.getElementById('btn-dec-s').addEventListener('click', decSym);
+    document.getElementById('btn-clear-s').addEventListener('click', ()=>{
+      document.getElementById('msg-s').value='';
+      document.getElementById('pass-s').value='';
+      ui.clearSteps(document.getElementById('steps-s'));
+      ui.setOut(document.getElementById('out-s'), '');
+    });
+
+    // ASIMMETRICA (Ibrida) --------------------------------------------------
+    async function genRSA(){
+      const kp = await crypto.subtle.generateKey({name:'RSA-OAEP', modulusLength:2048, publicExponent:new Uint8Array([1,0,1]), hash:'SHA-256'}, true, ['encrypt','decrypt']);
+      const pub = await crypto.subtle.exportKey('spki', kp.publicKey);
+      const priv = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+      document.getElementById('pub-a').value = b64.fromBytes(pub);
+      document.getElementById('priv-a').value = b64.fromBytes(priv);
+      ui.markDone(document.getElementById('a1'), 'RSA‑2048 / SHA‑256');
+    }
+
+    async function importRSA(spki_b64, pkcs8_b64){
+      const pub = spki_b64 ? await crypto.subtle.importKey('spki', b64.toBytes(spki_b64.trim()), {name:'RSA-OAEP', hash:'SHA-256'}, true, ['encrypt']) : null;
+      const priv = pkcs8_b64 ? await crypto.subtle.importKey('pkcs8', b64.toBytes(pkcs8_b64.trim()), {name:'RSA-OAEP', hash:'SHA-256'}, true, ['decrypt']) : null;
+      return {publicKey: pub, privateKey: priv};
+    }
+
+    async function encAsym(){
+      ui.clearSteps(document.getElementById('steps-a'));
+      const msg = document.getElementById('msg-a').value || '';
+      if(!msg){ ui.setOut(document.getElementById('out-a'), '<span class="muted">Inserisci un messaggio.</span>'); return; }
+      const keys = await importRSA(document.getElementById('pub-a').value, document.getElementById('priv-a').value);
+      if(!keys.publicKey){ ui.setOut(document.getElementById('out-a'), '<span class="muted">Fornisci o genera una chiave pubblica.</span>'); return; }
+
+      ui.markDone(document.getElementById('a1'), 'chiavi pronte');
+      const data = enc.encode(msg);
+      ui.markDone(document.getElementById('a2'), `${data.length} byte`);
+
+      const aesKey = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
+      const aesRaw = await crypto.subtle.exportKey('raw', aesKey);
+      ui.markDone(document.getElementById('a3'), `AES‑256: ${hex(aesRaw).slice(0,48)}…`);
+
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, data);
+      ui.markDone(document.getElementById('a4'), `ciphertext=${hex(ct).slice(0,64)}…`);
+
+      const encKey = await crypto.subtle.encrypt({name:'RSA-OAEP'}, keys.publicKey, aesRaw);
+      ui.markDone(document.getElementById('a5'), `len=${encKey.byteLength} byte`);
+
+      const packet = {v:1, scheme:'RSA-OAEP+AES-GCM', iv:b64.fromBytes(iv), ct:b64.fromBytes(ct), ek:b64.fromBytes(encKey)};
+      ui.setOut(document.getElementById('out-a'), `<div class="mono">${JSON.stringify(packet, null, 2)}</div>`);
+    }
+
+    async function decAsym(){
+      ui.clearSteps(document.getElementById('steps-a'));
+      const out = document.getElementById('out-a');
+      let packet; try{ packet = JSON.parse(out.innerText); }catch(e){ ui.setOut(out, '<span class="muted">Inserisci/Genera prima un pacchetto JSON valido nell\'output.</span>'); return; }
+      const keys = await importRSA(document.getElementById('pub-a').value, document.getElementById('priv-a').value);
+      if(!keys.privateKey){ ui.setOut(out, '<span class="muted">Serve la chiave privata per decifrare.</span>'); return; }
+
+      ui.markDone(document.getElementById('a1'), 'chiave privata pronta');
+      const aesRaw = await crypto.subtle.decrypt({name:'RSA-OAEP'}, keys.privateKey, b64.toBytes(packet.ek)).catch(e=>{
+        ui.setOut(out, `<span class="bad">Errore RSA: ${e.message}</span>`);
+      });
+      if(!aesRaw) return;
+      ui.markDone(document.getElementById('a5'), `decifrata (${aesRaw.byteLength} byte)`);
+
+      const aesKey = await crypto.subtle.importKey('raw', aesRaw, {name:'AES-GCM'}, false, ['decrypt']);
+      ui.markDone(document.getElementById('a3'), 'chiave AES pronta');
+      const iv = b64.toBytes(packet.iv);
+      const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, aesKey, b64.toBytes(packet.ct)).catch(e=>{
+        ui.setOut(out, `<span class="bad">Errore GCM: ${e.message}</span>`);
+      });
+      if(pt){
+        ui.markDone(document.getElementById('a4'), 'autenticazione GCM OK');
+        ui.markDone(document.getElementById('a2'), `${pt.byteLength} byte`);
+        ui.setOut(out, `<div class="mono">${dec.decode(pt)}</div>`);
+      }
+    }
+
+    document.getElementById('btn-gen-a').addEventListener('click', genRSA);
+    document.getElementById('btn-enc-a').addEventListener('click', encAsym);
+    document.getElementById('btn-dec-a').addEventListener('click', decAsym);
+    document.getElementById('btn-clear-a').addEventListener('click', ()=>{
+      document.getElementById('msg-a').value='';
+      document.getElementById('pub-a').value='';
+      document.getElementById('priv-a').value=''; 
+      ui.clearSteps(document.getElementById('steps-a'));
+      ui.setOut(document.getElementById('out-a'), '');
+    });
+
+    // Compatibilità minima
+    if(!window.crypto || !window.crypto.subtle){
+      document.body.innerHTML = '<div style="max-width:700px;margin:60px auto;color:#fff;font-family:sans-serif">'+
+      '<h1>Web Crypto non disponibile</h1>'+
+      '<p>Il tuo browser non supporta <strong>SubtleCrypto</strong>. Apri questa pagina in un browser moderno (Chrome, Edge, Safari, Firefox) tramite HTTPS.</p>'+
+      '</div>';
+    }
+  </script>
+</body>
+</html>
+ 
